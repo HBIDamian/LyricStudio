@@ -5,8 +5,8 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch server.js",
-    "start": "node server.js"
+    "dev": "bun --watch server.js",
+    "start": "bun server.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

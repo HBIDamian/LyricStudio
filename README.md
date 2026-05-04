@@ -49,7 +49,7 @@ If no valid OpenAI API key is configured, the app still works and uses lightweig
 
 ## Tech stack
 
-- **Node.js**
+- **Bun**
 - **Express 5**
 - **OpenAI JavaScript SDK**
 - **Vanilla HTML / CSS / JavaScript** frontend
@@ -58,24 +58,23 @@ If no valid OpenAI API key is configured, the app still works and uses lightweig
 
 ### Requirements
 
-- Node.js 20+ recommended
-- npm
+- Bun 1.x
 
 ### Installation
 
 1. Install dependencies:
-	- `npm install`
+   - `bun install`
 2. Copy the example environment file:
-	- `cp .env.example .env`
+   - `cp .env.example .env`
 3. Update `.env` with your real OpenAI API key if you want AI features enabled.
 4. Start the app:
-	- `npm start`
+   - `bun run start`
 5. Open:
-	- `http://localhost:3000`
+   - `http://localhost:3000`
 
 For development with automatic restarts:
 
-- `npm run dev`
+- `bun run dev`
 
 ## Environment variables
 
@@ -87,8 +86,8 @@ The project includes `.env.example` with the expected values:
 
 ## Available scripts
 
-- `npm start` — start the production-style server
-- `npm run dev` — run the server in watch mode
+- `bun run start` — start the production-style server
+- `bun run dev` — run the server in watch mode
 
 ## Project structure
 
@@ -107,7 +106,7 @@ Lyric Studio exposes a small internal API for the frontend:
 ## Deployment notes
 
 - The app serves the static frontend directly from Express.
-- It can be deployed to a small Node host or VPS with environment variables configured.
+- It can be deployed to any Bun-compatible host or VPS with environment variables configured.
 - When you point your domain later, the intended public URL is:
   - `https://lyricstudio.trinculo.xyz`
 
@@ -115,5 +114,6 @@ Lyric Studio exposes a small internal API for the frontend:
 
 This project is licensed under the **Apache License 2.0**. See [`LICENSE`](./LICENSE).
 
-## Support Me:
-- Ko-fi: <https://ko-fi.com/hbidamian> My project is free, but the AI usage is coming out of my own pocket. If you could spare a quid or two to help me fund the AI usage, that'd be grand <3
+## Support Me
+
+- Ko-fi: <https://ko-fi.com/hbidamian> — The project is free, but AI usage is paid for out of pocket. If you fancy chucking in a quid or two, that would be lovely.
