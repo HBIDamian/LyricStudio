@@ -16,6 +16,10 @@ function getLineStartIndex(text, lineNumber) {
   return start;
 }
 
+function shouldAutofocusEditor() {
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
 export function createEditor({ container, onChange, onSelectionChange }) {
   container.innerHTML = `
     <div class="editor-grid">
@@ -158,7 +162,10 @@ export function createEditor({ container, onChange, onSelectionChange }) {
 
   renderGutter();
   queueMicrotask(() => {
-    textarea.focus();
+    if (shouldAutofocusEditor()) {
+      textarea.focus();
+    }
+
     emitChange();
     emitSelectionChange();
   });
