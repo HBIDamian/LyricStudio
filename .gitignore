@@ -39,3 +39,7 @@ Thumbs.db
 .vscode/
 package-lock.json
 bun.lock
+
+# Start scripts
+start.sh
+loopstart.sh
