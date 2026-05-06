@@ -1,4 +1,5 @@
 import { requestAssistant } from '../api.js';
+import { stripInlineMarkdownFormatting } from '../textCleanup.js';
 
 const VISUALS = ['smoke-blue', 'amber-lit', 'rain-glossed', 'velvet-dark', 'silver-edged'];
 const TEXTURES = ['static in the ribs', 'dust on the windowsill', 'salt on the mouth', 'heat under the skin', 'echo in the floorboards'];
@@ -7,7 +8,7 @@ const MOTIONS = ['leaning into the room', 'drifting through the rafters', 'colle
 function splitOptions(text) {
   return text
     .split(/\n+/)
-    .map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').trim())
+    .map((line) => stripInlineMarkdownFormatting(line.replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').trim()))
     .filter(Boolean)
     .slice(0, 3);
 }

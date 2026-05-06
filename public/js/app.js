@@ -38,6 +38,9 @@ const ideaFormat = document.querySelector('#idea-format');
 const ideaTopic = document.querySelector('#idea-topic');
 const ideaMood = document.querySelector('#idea-mood');
 const ideaPerspective = document.querySelector('#idea-perspective');
+const ideaLineCount = document.querySelector('#idea-line-count');
+const ideaRhymePatternWrap = document.querySelector('#idea-rhyme-pattern-wrap');
+const ideaRhymePattern = document.querySelector('#idea-rhyme-pattern');
 const ideaAnchor = document.querySelector('#idea-anchor');
 const metaphorEmotion = document.querySelector('#metaphor-emotion');
 const metaphorEmotionOtherWrap = document.querySelector('#metaphor-emotion-other-wrap');
@@ -60,6 +63,29 @@ const SHORTCUT_LABELS = {
   save: IS_MAC ? '⌘S' : 'Ctrl+S',
   load: IS_MAC ? '⌘O' : 'Ctrl+O',
   copyAll: IS_MAC ? '⌘⇧C' : 'Ctrl+Shift+C',
+};
+const IDEA_RHYME_PATTERNS = {
+  2: [
+    { value: 'AA', label: 'AA · both lines rhyme' },
+    { value: 'AB', label: 'AB · no end-rhyme match' },
+  ],
+  3: [
+    { value: 'AAA', label: 'AAA · all three lines rhyme' },
+    { value: 'AAB', label: 'AAB · first two rhyme, third breaks away' },
+    { value: 'ABA', label: 'ABA · first and third rhyme' },
+    { value: 'ABB', label: 'ABB · last two lines rhyme' },
+  ],
+  4: [
+    { value: 'AAAA', label: 'AAAA · every line rhymes' },
+    { value: 'AABB', label: 'AABB · couplet pairs' },
+    { value: 'ABAB', label: 'ABAB · alternating rhyme' },
+    { value: 'ABBA', label: 'ABBA · envelope rhyme' },
+  ],
+};
+const IDEA_DEFAULT_RHYME_PATTERNS = {
+  2: 'AA',
+  3: 'AAB',
+  4: 'AABB',
 };
 
 const chrome = setupChrome({
@@ -97,6 +123,7 @@ const state = {
   aiAvailable: false,
   aiModel: null,
   selectedTone: 'poetic',
+  ideaRhymeSelections: { ...IDEA_DEFAULT_RHYME_PATTERNS },
 };
 
 let editor;
@@ -496,6 +523,40 @@ function syncCustomFieldVisibility() {
   toggleCustomField(metaphorEmotionOtherWrap, useCustomEmotion);
 }
 
+function syncIdeaRhymePatternField() {
+  const parsedLineCount = Number.parseInt(ideaLineCount.value, 10);
+  const normalizedLineCount = Number.isFinite(parsedLineCount)
+    ? Math.min(4, Math.max(1, parsedLineCount))
+    : 1;
+  const patternOptions = IDEA_RHYME_PATTERNS[normalizedLineCount] ?? [];
+  const shouldShow = normalizedLineCount > 1;
+  const rememberedValue = state.ideaRhymeSelections[normalizedLineCount] ?? IDEA_DEFAULT_RHYME_PATTERNS[normalizedLineCount] ?? '';
+
+  toggleCustomField(ideaRhymePatternWrap, shouldShow);
+
+  if (!shouldShow) {
+    ideaRhymePattern.replaceChildren();
+    return;
+  }
+
+  const optionDefinitions = [...patternOptions, { value: '', label: 'No rhyme preference' }];
+
+  ideaRhymePattern.replaceChildren(
+    ...optionDefinitions.map(({ value, label }) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      return option;
+    }),
+  );
+
+  ideaRhymePattern.value = optionDefinitions.some(({ value }) => value === rememberedValue)
+    ? rememberedValue
+    : (IDEA_DEFAULT_RHYME_PATTERNS[normalizedLineCount] ?? '');
+
+  state.ideaRhymeSelections[normalizedLineCount] = ideaRhymePattern.value;
+}
+
 function getSelectedRewriteTone() {
   return state.selectedTone === 'other'
     ? rewriteToneOther.value.trim()
@@ -662,12 +723,19 @@ function closeIdeaModal() {
 }
 
 function getIdeaPromptValues() {
+  const parsedLineCount = Number.parseInt(ideaLineCount.value, 10);
+  const normalizedLineCount = Number.isFinite(parsedLineCount)
+    ? Math.min(4, Math.max(1, parsedLineCount))
+    : 1;
+
   return {
     part: ideaPart.value,
     format: ideaFormat.value,
     text: ideaTopic.value.trim(),
     mood: ideaMood.value.trim(),
     perspective: ideaPerspective.value,
+    lineCount: normalizedLineCount,
+    rhymePattern: normalizedLineCount > 1 ? ideaRhymePattern.value : '',
     anchor: ideaAnchor.value.trim(),
   };
 }
@@ -942,9 +1010,25 @@ metaphorEmotion.addEventListener('change', () => {
   }
 });
 
+ideaLineCount.addEventListener('change', () => {
+  syncIdeaRhymePatternField();
+});
+
+ideaRhymePattern.addEventListener('change', () => {
+  const parsedLineCount = Number.parseInt(ideaLineCount.value, 10);
+  const normalizedLineCount = Number.isFinite(parsedLineCount)
+    ? Math.min(4, Math.max(1, parsedLineCount))
+    : 1;
+
+  if (normalizedLineCount > 1) {
+    state.ideaRhymeSelections[normalizedLineCount] = ideaRhymePattern.value;
+  }
+});
+
 updateEditorChips();
 renderSyllableResults();
 renderClicheResults();
 renderStatusPanel();
 syncCustomFieldVisibility();
+syncIdeaRhymePatternField();
 await syncAiHealth();

@@ -23,6 +23,15 @@ const openai = hasLikelyOpenAiKey
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+function normalizeRhymePattern(rhymePattern = '', lineCount = 1) {
+  const normalizedLineCount = Math.min(4, Math.max(1, Number.parseInt(lineCount, 10) || 1));
+  const trimmedRhymePattern = typeof rhymePattern === 'string' ? rhymePattern.trim().toUpperCase() : '';
+
+  return trimmedRhymePattern.length === normalizedLineCount && /^[A-Z]+$/.test(trimmedRhymePattern)
+    ? trimmedRhymePattern
+    : '';
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
@@ -46,8 +55,12 @@ function buildAssistantMessages({
   mood,
   perspective,
   anchor,
+  lineCount = 1,
+  rhymePattern = '',
   contextLines = [],
 }) {
+  const normalizedLineCount = Math.min(4, Math.max(1, Number.parseInt(lineCount, 10) || 1));
+  const normalizedRhymePattern = normalizeRhymePattern(rhymePattern, normalizedLineCount);
   const surroundingContext = contextLines
     .filter((line) => line && line.trim())
     .slice(0, 8)
@@ -96,9 +109,22 @@ function buildAssistantMessages({
         role: 'user',
         content: [
           'The writer is looking for inspiration, not a finished piece.',
-          'Ask nothing back. Instead, generate exactly 6 single-line ideas or short lyric fragments they can cherry-pick from.',
+          `Ask nothing back. Instead, generate exactly 6 ideas or short lyric fragments they can cherry-pick from, with exactly ${normalizedLineCount} line${normalizedLineCount === 1 ? '' : 's'} per idea.`,
+          'Format the response as a numbered list, and keep each numbered item on its own mini block.',
           'Do not write a full verse, chorus, poem, outline, or explanation.',
           'Keep each option distinct, suggestive, and open-ended enough for the human writer to continue.',
+          normalizedRhymePattern
+            ? `Use the rhyme pattern ${normalizedRhymePattern}. This is mandatory, and it must use perfect rhyme.`
+            : '',
+          normalizedRhymePattern
+            ? 'Perfect rhyme only: matching letters must end on clear, exact rhyming sounds; different letters must end on clearly different rhyme sounds.'
+            : '',
+          normalizedRhymePattern
+            ? 'Do not use slant rhyme, near rhyme, repeated identical end words, or vague almost-rhymes.'
+            : '',
+          normalizedRhymePattern
+            ? 'Before you answer, silently verify that every idea follows the requested rhyme scheme exactly.'
+            : '',
           part ? `Target section / use-case: ${part}` : '',
           format ? `Writing form: ${format}` : '',
           text ? `What they want to write about: ${text}` : '',
@@ -137,12 +163,16 @@ app.post('/api/assist', async (req, res) => {
     mood,
     perspective,
     anchor,
+    lineCount,
+    rhymePattern,
     contextLines,
   } = req.body ?? {};
 
   const normalizedText = text?.trim() ?? '';
   const normalizedMood = mood?.trim() ?? '';
   const normalizedAnchor = anchor?.trim() ?? '';
+  const normalizedLineCount = Math.min(4, Math.max(1, Number.parseInt(lineCount, 10) || 1));
+  const normalizedRhymePattern = normalizeRhymePattern(rhymePattern, normalizedLineCount);
 
   if (!tool) {
     return res.status(400).json({
@@ -185,6 +215,8 @@ app.post('/api/assist', async (req, res) => {
         mood: normalizedMood,
         perspective,
         anchor: normalizedAnchor,
+        lineCount: normalizedLineCount,
+        rhymePattern: normalizedRhymePattern,
         contextLines,
       }),
     });

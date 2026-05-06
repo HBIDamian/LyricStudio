@@ -1,4 +1,5 @@
 import { requestAssistant } from '../api.js';
+import { stripInlineMarkdownFormatting } from '../textCleanup.js';
 
 const EMOTION_BANK = {
   longing: [
@@ -41,7 +42,7 @@ const EMOTION_BANK = {
 function cleanBullets(text) {
   return text
     .split(/\n+/)
-    .map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').trim())
+    .map((line) => stripInlineMarkdownFormatting(line.replace(/^\s*(?:[-*]|\d+[.)])\s*/, '').trim()))
     .filter(Boolean)
     .slice(0, 5);
 }
