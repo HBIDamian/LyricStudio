@@ -109,6 +109,7 @@ export function setupChrome({
   lineChip,
 }) {
   const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const mobileLayoutQuery = window.matchMedia('(max-width: 720px)');
   let themePreference = getSavedThemePreference();
 
   const updateTheme = (nextPreference, { persist = true } = {}) => {
@@ -121,17 +122,25 @@ export function setupChrome({
     applyThemePreference(nextPreference, themeButtons);
   };
 
-  toolToggle.addEventListener('click', () => {
-    const collapsed = toolPanel.classList.toggle('is-collapsed');
+  const setToolPanelCollapsed = (collapsed) => {
+    toolPanel.classList.toggle('is-collapsed', collapsed);
     workspace.classList.toggle('is-panel-collapsed', collapsed);
     toolToggle.textContent = collapsed ? 'Show tools' : 'Hide tools';
     toolToggle.setAttribute('aria-pressed', String(!collapsed));
+  };
+
+  const setStatusPanelCollapsed = (collapsed) => {
+    statusPanel.classList.toggle('is-collapsed', collapsed);
+    statusToggle.textContent = collapsed ? 'Show analysis' : 'Hide analysis';
+    statusToggle.setAttribute('aria-pressed', String(!collapsed));
+  };
+
+  toolToggle.addEventListener('click', () => {
+    setToolPanelCollapsed(!toolPanel.classList.contains('is-collapsed'));
   });
 
   statusToggle.addEventListener('click', () => {
-    const collapsed = statusPanel.classList.toggle('is-collapsed');
-    statusToggle.textContent = collapsed ? 'Show analysis' : 'Hide analysis';
-    statusToggle.setAttribute('aria-pressed', String(!collapsed));
+    setStatusPanelCollapsed(!statusPanel.classList.contains('is-collapsed'));
   });
 
   themeButtons.forEach((button) => {
@@ -153,8 +162,10 @@ export function setupChrome({
   }
 
   updateTheme(themePreference, { persist: false });
-  toolToggle.setAttribute('aria-pressed', 'true');
-  statusToggle.setAttribute('aria-pressed', 'true');
+
+  const collapsePanelsByDefault = mobileLayoutQuery.matches;
+  setToolPanelCollapsed(collapsePanelsByDefault || toolPanel.classList.contains('is-collapsed'));
+  setStatusPanelCollapsed(collapsePanelsByDefault || statusPanel.classList.contains('is-collapsed'));
 
   return {
     setAiStatus({ aiAvailable, model }) {
