@@ -25,12 +25,14 @@ export function createEditor({ container, onChange, onSelectionChange }) {
     <div class="editor-grid">
       <div class="line-gutter"></div>
       <textarea class="editor-input" spellcheck="true" placeholder="Write a line…\nThen another one.\nLeave blank lines for stanzas."></textarea>
+      <div class="editor-line-measure" aria-hidden="true"></div>
     </div>
   `;
 
   const gutter = container.querySelector('.line-gutter');
   const textarea = container.querySelector('.editor-input');
   const flaggedLines = new Map();
+  let measuredLineHeights = [];
 
   textarea.value = DEFAULT_EDITOR_TEXT;
 
@@ -40,6 +42,59 @@ export function createEditor({ container, onChange, onSelectionChange }) {
       number: index + 1,
       text,
     }));
+  }
+
+  function getEditorLineHeight() {
+    const lineHeight = Number.parseFloat(window.getComputedStyle(textarea).lineHeight);
+    return Number.isFinite(lineHeight) ? lineHeight : 32;
+  }
+
+  function measureVisualLineHeights(lines) {
+    if (!lines.length) {
+      return [];
+    }
+
+    const textareaStyles = window.getComputedStyle(textarea);
+    const lineHeight = getEditorLineHeight();
+    const paddingLeft = Number.parseFloat(textareaStyles.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(textareaStyles.paddingRight) || 0;
+    const contentWidth = Math.max(0, textarea.clientWidth - paddingLeft - paddingRight);
+
+    if (!contentWidth) {
+      return lines.map(() => lineHeight);
+    }
+
+    lineMeasure.style.width = `${contentWidth}px`;
+    lineMeasure.style.font = textareaStyles.font;
+    lineMeasure.style.fontKerning = textareaStyles.fontKerning;
+    lineMeasure.style.fontFeatureSettings = textareaStyles.fontFeatureSettings;
+    lineMeasure.style.fontVariationSettings = textareaStyles.fontVariationSettings;
+    lineMeasure.style.fontStretch = textareaStyles.fontStretch;
+    lineMeasure.style.letterSpacing = textareaStyles.letterSpacing;
+    lineMeasure.style.wordSpacing = textareaStyles.wordSpacing;
+    lineMeasure.style.lineHeight = textareaStyles.lineHeight;
+    lineMeasure.style.textTransform = textareaStyles.textTransform;
+    lineMeasure.style.textIndent = textareaStyles.textIndent;
+    lineMeasure.style.tabSize = textareaStyles.tabSize;
+    lineMeasure.style.whiteSpace = 'pre-wrap';
+    lineMeasure.style.wordBreak = textareaStyles.wordBreak;
+    lineMeasure.style.overflowWrap = textareaStyles.overflowWrap;
+
+    const fragment = document.createDocumentFragment();
+
+    lines.forEach((line) => {
+      const row = document.createElement('div');
+      row.className = 'editor-line-measure-row';
+      row.textContent = line.text || ' ';
+      fragment.append(row);
+    });
+
+    lineMeasure.replaceChildren(fragment);
+
+    return [...lineMeasure.children].map((row) => {
+      const height = Math.ceil(row.getBoundingClientRect().height);
+      return Math.max(height, lineHeight);
+    });
   }
 
   function getActiveLineNumber() {
@@ -74,15 +129,19 @@ export function createEditor({ container, onChange, onSelectionChange }) {
     textarea.focus();
     textarea.setSelectionRange(selectWholeLine ? start : end, end);
     window.location.hash = `line-${lineNumber}`;
-    renderGutter();
+    renderGutter({ recalculateHeights: false });
     emitSelectionChange();
   }
 
-  function renderGutter() {
+  function renderGutter({ lines = getLines(), recalculateHeights = false } = {}) {
     const activeLine = getActiveLineNumber();
-    const lines = getLines();
+
+    if (recalculateHeights || measuredLineHeights.length !== lines.length) {
+      measuredLineHeights = measureVisualLineHeights(lines);
+    }
 
     gutter.innerHTML = lines.map((line) => {
+      const lineHeight = measuredLineHeights[line.number - 1] || getEditorLineHeight();
       const isFlagged = flaggedLines.has(line.number);
       const title = isFlagged ? ` title="Cliché note: ${flaggedLines.get(line.number)}"` : '';
       return `
@@ -90,6 +149,7 @@ export function createEditor({ container, onChange, onSelectionChange }) {
           type="button"
           class="gutter-line${line.number === activeLine ? ' is-active' : ''}${isFlagged ? ' has-cliche' : ''}"
           data-line-number="${line.number}"
+          style="--gutter-line-height: ${lineHeight}px"
           aria-label="Focus line ${line.number}"
           ${title}
         >#${line.number}</button>
@@ -98,15 +158,17 @@ export function createEditor({ container, onChange, onSelectionChange }) {
   }
 
   function emitChange() {
-    renderGutter();
+    const lines = getLines();
+    renderGutter({ lines, recalculateHeights: true });
     onChange?.({
-      lines: getLines(),
+      lines,
       activeLine: getActiveLine(),
       selectedText: getSelectedText(),
     });
   }
 
   function emitSelectionChange() {
+    renderGutter({ recalculateHeights: false });
     onSelectionChange?.({
       lines: getLines(),
       activeLine: getActiveLine(),
@@ -133,24 +195,32 @@ export function createEditor({ container, onChange, onSelectionChange }) {
   });
 
   textarea.addEventListener('click', () => {
-    renderGutter();
     emitSelectionChange();
   });
 
   textarea.addEventListener('keyup', () => {
-    renderGutter();
     emitSelectionChange();
   });
 
   textarea.addEventListener('select', () => {
-    renderGutter();
     emitSelectionChange();
   });
 
   textarea.addEventListener('focus', () => {
-    renderGutter();
     emitSelectionChange();
   });
+
+  if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver(() => {
+      renderGutter({ recalculateHeights: true });
+    });
+
+    resizeObserver.observe(textarea);
+  } else {
+    window.addEventListener('resize', () => {
+      renderGutter({ recalculateHeights: true });
+    });
+  }
 
   window.addEventListener('hashchange', () => {
     const hashMatch = window.location.hash.match(/^#line-(\d+)$/);
@@ -160,7 +230,7 @@ export function createEditor({ container, onChange, onSelectionChange }) {
     }
   });
 
-  renderGutter();
+  renderGutter({ recalculateHeights: true });
   queueMicrotask(() => {
     if (shouldAutofocusEditor()) {
       textarea.focus();
@@ -195,7 +265,7 @@ export function createEditor({ container, onChange, onSelectionChange }) {
         flaggedLines.set(entry.lineNumber, entry.matches.map((match) => match.phrase).join(', '));
       });
 
-      renderGutter();
+      renderGutter({ recalculateHeights: false });
     },
     focusLine,
     insertBelowActive(text) {

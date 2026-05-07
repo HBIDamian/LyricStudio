@@ -58,10 +58,6 @@
   box-sizing: border-box;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
 html,
 body {
   margin: 0;
@@ -212,18 +208,6 @@ h4 {
   max-width: 48ch;
   color: var(--muted);
   line-height: 1.55;
-}
-
-.chrome-summary,
-.editor-copy,
-.editor-actions-note,
-.tool-panel-note,
-.tool-group-toggle-note,
-.status-panel-header p,
-.site-footer-copy,
-.modal-copy,
-.editor-shortcuts {
-  overflow-wrap: anywhere;
 }
 
 .chrome-controls {
@@ -525,6 +509,7 @@ select {
   --editor-line-height: 2.15rem;
   --editor-padding-top: 0.3rem;
   --editor-padding-bottom: 1.5rem;
+  position: relative;
   display: grid;
   grid-template-columns: 4.2rem minmax(0, 1fr);
   gap: 0.7rem;
@@ -548,11 +533,12 @@ select {
 
 .gutter-line {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
   min-height: var(--editor-line-height);
-  height: var(--editor-line-height);
-  padding: 0 0.55rem;
+  height: var(--gutter-line-height, var(--editor-line-height));
+  line-height: var(--editor-line-height);
+  padding: 0.02rem 0.55rem 0;
   border: 1px solid transparent;
   border-radius: 14px;
   background: transparent;
@@ -602,6 +588,20 @@ select {
 
 .editor-input::placeholder {
   color: var(--muted-soft);
+}
+
+.editor-line-measure {
+  position: absolute;
+  top: -99999px;
+  left: -99999px;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre-wrap;
+}
+
+.editor-line-measure-row {
+  min-height: var(--editor-line-height);
+  white-space: pre-wrap;
 }
 
 .editor-actions {
@@ -1132,30 +1132,6 @@ input::placeholder {
   }
 }
 
-@media (max-width: 1120px) {
-  .tool-panel-header,
-  .status-panel-header,
-  .editor-actions-meta {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .tool-panel-header,
-  .status-panel-header {
-    gap: 0.65rem;
-  }
-
-  .editor-actions-meta,
-  .editor-legend,
-  .editor-action-buttons {
-    justify-content: flex-start;
-  }
-
-  .editor-actions-meta {
-    gap: 0.45rem;
-  }
-}
-
 @media (max-width: 980px) {
   .topbar,
   .editor-topbar,
@@ -1170,23 +1146,7 @@ input::placeholder {
     justify-content: flex-start;
   }
 
-  .studio-rail {
-    display: grid;
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(17.5rem, 84%);
-    gap: 0.75rem;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .studio-rail > * {
-    scroll-snap-align: start;
-  }
-
+  .studio-rail,
   .status-grid {
     grid-template-columns: 1fr;
   }
@@ -1233,95 +1193,11 @@ input::placeholder {
   .question-grid-wide {
     grid-column: auto;
   }
-
-  .topbar,
-  .studio-rail,
-  .editor-wrap,
-  .tool-panel,
-  .status-panel,
-  .site-footer,
-  .modal-card {
-    border-radius: 22px;
-  }
-
-  .rail-card,
-  .tool-group,
-  .tool-card,
-  .status-card,
-  .editor-stage,
-  .editor-actions,
-  .editor-grid {
-    border-radius: 16px;
-  }
-
-  .chrome-brand {
-    align-items: flex-start;
-  }
-
-  .chrome-summary,
-  .status-panel-header p,
-  .tool-panel-note,
-  .modal-copy {
-    max-width: none;
-  }
-
-  .editor-stage {
-    min-height: clamp(21rem, 58vh, 31rem);
-  }
-
-  .editor-actions-meta,
-  .metric-item {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .tool-card-actions,
-  .tool-card-actions .tool-button {
-    width: 100%;
-  }
-
-  .modal-close-button {
-    align-self: flex-start;
-  }
 }
 
 @media (max-width: 720px) {
   .app-shell {
-    gap: 0.7rem;
-    padding: 0.65rem;
-    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom));
-  }
-
-  .topbar,
-  .studio-rail,
-  .editor-wrap,
-  .tool-panel,
-  .status-panel,
-  .site-footer {
-    padding: 0.8rem;
-  }
-
-  .topbar {
-    gap: 0.85rem;
-  }
-
-  .chrome-brand {
-    gap: 0.8rem;
-  }
-
-  .brand-emblem {
-    width: 2.7rem;
-    height: 2.7rem;
-    border-radius: 16px;
-  }
-
-  .brand-copy h1 {
-    font-size: clamp(1.85rem, 9vw, 2.2rem);
-  }
-
-  .chrome-summary {
-    max-width: none;
-    font-size: 0.98rem;
+    padding: 0.75rem;
   }
 
   .topbar-actions,
@@ -1338,66 +1214,18 @@ input::placeholder {
   .theme-switcher {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.65rem;
-    padding: 0.7rem;
-    border-radius: 20px;
+    border-radius: 22px;
   }
 
   .theme-toggle {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .theme-button,
-  .topbar-actions > *,
-  .status-badge {
-    width: 100%;
-  }
-
-  .theme-button {
-    min-width: 0;
-  }
-
-  .status-badge {
-    justify-content: center;
-    text-align: center;
-  }
-
-  .editor-topbar,
-  .tool-panel-header,
-  .status-panel-header {
-    gap: 0.75rem;
-  }
-
-  .editor-copy,
-  .tool-group-toggle-note,
-  .site-footer-copy,
-  .modal-copy {
-    font-size: 0.96rem;
-  }
-
-  .editor-stage,
-  .editor-actions,
-  .rail-card,
-  .tool-card,
-  .status-card {
-    padding: 0.75rem;
+    grid-template-columns: 1fr;
   }
 
   .editor-grid {
-    --editor-line-height: 1.9rem;
-    grid-template-columns: 2.7rem minmax(0, 1fr);
-    gap: 0.55rem;
-    padding: 0.55rem;
-  }
-
-  .line-gutter {
-    padding: var(--editor-padding-top) 0.2rem var(--editor-padding-bottom);
-  }
-
-  .gutter-line {
-    padding: 0 0.35rem;
-    font-size: 0.82rem;
-    border-radius: 12px;
+    --editor-line-height: 2rem;
+    grid-template-columns: 3.3rem minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.65rem;
   }
 
   .editor-stage-head {
@@ -1405,26 +1233,8 @@ input::placeholder {
     align-items: flex-start;
   }
 
-  .editor-stage {
-    min-height: clamp(20rem, 56vh, 29rem);
-  }
-
-  .editor-stage-head p {
-    font-size: 0.95rem;
-  }
-
   .editor-input {
     font-size: 1rem;
-  }
-
-  .editor-actions-meta {
-    gap: 0.55rem;
-  }
-
-  .editor-shortcuts,
-  .editor-autosave-indicator,
-  .editor-action-status {
-    font-size: 0.88rem;
   }
 
   .editor-action-buttons {
@@ -1434,139 +1244,5 @@ input::placeholder {
 
   .editor-action-button {
     width: 100%;
-  }
-
-  .tool-group {
-    padding: 0.45rem;
-  }
-
-  .tool-group-toggle {
-    gap: 0.65rem;
-    padding: 0.25rem;
-  }
-
-  .tool-group-title {
-    font-size: 1.12rem;
-  }
-
-  .tool-group-toggle-note {
-    font-size: 0.92rem;
-  }
-
-  .tool-group-content {
-    gap: 0.55rem;
-    padding: 0.55rem 0.15rem 0.15rem;
-  }
-
-  .tool-card-header {
-    gap: 0.75rem;
-  }
-
-  .legend-pill,
-  .external-link,
-  .token {
-    font-size: 0.84rem;
-  }
-
-  .modal-shell {
-    padding: 0.75rem;
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-  }
-
-  .modal-card {
-    width: 100%;
-    max-height: calc(100dvh - 1.5rem - env(safe-area-inset-bottom));
-    padding: 0.9rem;
-    padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
-    border-radius: 20px;
-  }
-
-  .modal-body {
-    gap: 0.85rem;
-  }
-}
-
-@media (max-width: 560px) {
-  .app-shell {
-    padding: 0.55rem;
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-  }
-
-  .topbar {
-    padding: 0.75rem;
-  }
-
-  .brand-emblem {
-    width: 2.45rem;
-    height: 2.45rem;
-  }
-
-  .brand-copy h1 {
-    font-size: clamp(1.75rem, 10vw, 2rem);
-  }
-
-  .chrome-summary,
-  .editor-copy,
-  .site-footer-copy,
-  .modal-copy {
-    font-size: 0.95rem;
-  }
-
-  .studio-rail {
-    grid-auto-columns: minmax(14.5rem, 90%);
-    gap: 0.55rem;
-  }
-
-  .theme-switcher {
-    padding: 0.6rem;
-  }
-
-  .theme-button,
-  .ghost-button,
-  .tool-button,
-  .tone-button {
-    min-height: 2.6rem;
-  }
-
-  .editor-stage {
-    min-height: clamp(18rem, 52vh, 25rem);
-  }
-
-  .editor-grid {
-    grid-template-columns: 2.25rem minmax(0, 1fr);
-    gap: 0.45rem;
-    padding: 0.5rem;
-  }
-
-  .gutter-line {
-    font-size: 0.76rem;
-  }
-
-  .metric-item {
-    gap: 0.35rem;
-    padding: 0.75rem 0.8rem;
-  }
-
-  .status-badge,
-  .legend-pill,
-  .external-link,
-  .token {
-    font-size: 0.82rem;
-  }
-
-  .external-link-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .modal-shell {
-    padding: 0.5rem;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-  }
-
-  .modal-card {
-    max-height: calc(100dvh - 1rem - env(safe-area-inset-bottom));
-    padding: 0.8rem;
-    padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
   }
 }
