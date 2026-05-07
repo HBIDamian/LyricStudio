@@ -705,7 +705,7 @@ function openIdeaModal() {
 
   lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   ideaModal.hidden = false;
-  document.body.style.overflow = 'hidden';
+  document.body.classList.add('has-open-modal');
 
   window.setTimeout(() => {
     ideaTopic?.focus();
@@ -718,7 +718,7 @@ function closeIdeaModal() {
   }
 
   ideaModal.hidden = true;
-  document.body.style.overflow = '';
+  document.body.classList.remove('has-open-modal');
   lastFocusedElement?.focus?.();
 }
 
