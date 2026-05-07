@@ -1,41 +1,58 @@
 const THEME_STORAGE_KEY = 'lyric-studio-theme-preference';
+const THEME_ICON_BY_THEME = {
+  light: '☀︎',
+  dark: '☾',
+};
 
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
+function normalizeThemePreference(preference) {
+  return preference === 'light' || preference === 'dark'
+    ? preference
+    : getSystemTheme();
+}
+
 function getSavedThemePreference() {
   try {
-    return localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+    return normalizeThemePreference(localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
-    return 'system';
+    return getSystemTheme();
   }
 }
 
 function persistThemePreference(preference) {
-  try {
-    if (preference === 'system') {
-      localStorage.removeItem(THEME_STORAGE_KEY);
-      return;
-    }
+  const normalizedPreference = normalizeThemePreference(preference);
 
-    localStorage.setItem(THEME_STORAGE_KEY, preference);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, normalizedPreference);
   } catch {
     // Ignore storage failures and continue with in-memory behavior.
   }
 }
 
-function applyThemePreference(preference, themeButtons = []) {
-  const resolvedTheme = preference === 'system' ? getSystemTheme() : preference;
+function applyThemePreference(preference, themeToggleButton = null) {
+  const resolvedTheme = normalizeThemePreference(preference);
   document.documentElement.dataset.theme = resolvedTheme;
-  document.documentElement.dataset.themePreference = preference;
+  document.documentElement.dataset.themePreference = resolvedTheme;
   document.documentElement.style.colorScheme = resolvedTheme;
 
-  themeButtons.forEach((button) => {
-    const isActive = button.dataset.themeChoice === preference;
-    button.classList.toggle('is-active', isActive);
-    button.setAttribute('aria-pressed', String(isActive));
-  });
+  if (!themeToggleButton) {
+    return;
+  }
+
+  const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+  const themeIcon = themeToggleButton.querySelector('[data-theme-icon]');
+
+  themeToggleButton.dataset.theme = resolvedTheme;
+  themeToggleButton.setAttribute('aria-pressed', String(resolvedTheme === 'dark'));
+  themeToggleButton.setAttribute('aria-label', `Switch to ${nextTheme} theme`);
+  themeToggleButton.setAttribute('title', `Switch to ${nextTheme} theme`);
+
+  if (themeIcon) {
+    themeIcon.textContent = THEME_ICON_BY_THEME[resolvedTheme];
+  }
 }
 
 export function escapeHtml(value = '') {
@@ -103,12 +120,11 @@ export function setupChrome({
   statusPanel,
   toolToggle,
   statusToggle,
-  themeButtons = [],
+  themeToggleButton = null,
   aiStatus,
   selectionChip,
   lineChip,
 }) {
-  const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const mobileLayoutQuery = window.matchMedia('(max-width: 720px)');
   let themePreference = getSavedThemePreference();
 
@@ -119,7 +135,7 @@ export function setupChrome({
       persistThemePreference(nextPreference);
     }
 
-    applyThemePreference(nextPreference, themeButtons);
+    applyThemePreference(nextPreference, themeToggleButton);
   };
 
   const setToolPanelCollapsed = (collapsed) => {
@@ -143,22 +159,10 @@ export function setupChrome({
     setStatusPanelCollapsed(!statusPanel.classList.contains('is-collapsed'));
   });
 
-  themeButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      updateTheme(button.dataset.themeChoice);
+  if (themeToggleButton) {
+    themeToggleButton.addEventListener('click', () => {
+      updateTheme(themePreference === 'dark' ? 'light' : 'dark');
     });
-  });
-
-  const syncSystemTheme = () => {
-    if (themePreference === 'system') {
-      applyThemePreference('system', themeButtons);
-    }
-  };
-
-  if (typeof systemThemeQuery.addEventListener === 'function') {
-    systemThemeQuery.addEventListener('change', syncSystemTheme);
-  } else if (typeof systemThemeQuery.addListener === 'function') {
-    systemThemeQuery.addListener(syncSystemTheme);
   }
 
   updateTheme(themePreference, { persist: false });

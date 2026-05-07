@@ -28,7 +28,7 @@ const statusToggle = document.querySelector('#status-panel-toggle');
 const workspace = document.querySelector('.workspace');
 const toolGroups = [...document.querySelectorAll('[data-tool-group]')];
 const toolCards = [...document.querySelectorAll('[data-tool-card]')];
-const themeButtons = [...document.querySelectorAll('[data-theme-choice]')];
+const themeToggleButton = document.querySelector('#theme-toggle');
 const ideaModal = document.querySelector('#idea-modal');
 const ideaModalBackdrop = document.querySelector('#idea-modal-backdrop');
 const openIdeaStarterButton = document.querySelector('#open-idea-starter');
@@ -94,7 +94,7 @@ const chrome = setupChrome({
   statusPanel,
   toolToggle,
   statusToggle,
-  themeButtons,
+  themeToggleButton,
   aiStatus,
   selectionChip,
   lineChip,

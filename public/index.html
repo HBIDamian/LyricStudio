@@ -24,19 +24,24 @@
         </div>
 
         <div class="chrome-controls">
-          <div class="theme-switcher" role="group" aria-label="Theme preference">
-            <span class="theme-label">Theme</span>
-            <div class="theme-toggle">
-              <button id="theme-system" type="button" class="theme-button is-active" data-theme-choice="system" aria-pressed="true">System</button>
-              <button id="theme-light" type="button" class="theme-button" data-theme-choice="light" aria-pressed="false">Light</button>
-              <button id="theme-dark" type="button" class="theme-button" data-theme-choice="dark" aria-pressed="false">Dark</button>
-            </div>
-          </div>
+          <button
+            id="theme-toggle"
+            type="button"
+            class="ghost-button theme-icon-button"
+            aria-label="Switch to dark theme"
+            aria-pressed="false"
+            title="Switch to dark theme"
+          >
+            <span class="theme-icon" data-theme-icon aria-hidden="true">☀︎</span>
+          </button>
 
           <div class="topbar-actions">
             <span id="ai-status" class="status-badge">Checking AI tools…</span>
-            <button id="tool-panel-toggle" class="ghost-button" type="button">Hide tools</button>
-            <button id="status-panel-toggle" class="ghost-button" type="button">Hide analysis</button>
+
+            <div class="panel-toggle-group" role="group" aria-label="Workspace panels">
+              <button id="tool-panel-toggle" class="ghost-button chrome-action-button" type="button">Hide tools</button>
+              <button id="status-panel-toggle" class="ghost-button chrome-action-button" type="button">Hide analysis</button>
+            </div>
           </div>
         </div>
       </header>
