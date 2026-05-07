@@ -31,6 +31,7 @@ export function createEditor({ container, onChange, onSelectionChange }) {
 
   const gutter = container.querySelector('.line-gutter');
   const textarea = container.querySelector('.editor-input');
+  const lineMeasure = container.querySelector('.editor-line-measure');
   const flaggedLines = new Map();
   let measuredLineHeights = [];
 
