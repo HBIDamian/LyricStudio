@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lyric Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -24,30 +25,33 @@
         </div>
 
         <div class="chrome-controls">
-          <button
-            id="theme-toggle"
-            type="button"
-            class="ghost-button theme-icon-button"
-            aria-label="Switch to dark theme"
-            aria-pressed="false"
-            title="Switch to dark theme"
-          >
-            <span class="theme-icon" data-theme-icon aria-hidden="true">☀︎</span>
-          </button>
-
           <div class="topbar-actions">
             <span id="ai-status" class="status-badge">Checking AI tools…</span>
 
-            <div class="panel-toggle-group" role="group" aria-label="Workspace panels">
-              <button id="tool-panel-toggle" class="ghost-button chrome-action-button" type="button">Hide tools</button>
-              <button id="status-panel-toggle" class="ghost-button chrome-action-button" type="button">Hide analysis</button>
+            <div class="topbar-controls-row">
+              <button
+                id="theme-toggle"
+                type="button"
+                class="ghost-button theme-icon-button"
+                aria-label="Switch to dark theme"
+                aria-pressed="false"
+                title="Switch to dark theme"
+              >
+                <i class="theme-icon fa-solid fa-sun" data-theme-icon aria-hidden="true"></i>
+              </button>
+
+              <div class="panel-toggle-group" role="group" aria-label="Workspace layout controls">
+                <button id="studio-rail-toggle" class="ghost-button chrome-action-button" type="button">Hide rail</button>
+                <button id="tool-panel-toggle" class="ghost-button chrome-action-button" type="button">Hide tools</button>
+                <button id="status-panel-toggle" class="ghost-button chrome-action-button" type="button">Hide analysis</button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main class="workspace">
-        <aside class="studio-rail" aria-label="Studio context">
+        <aside id="studio-rail" class="studio-rail" aria-label="Studio context">
           <section class="rail-card rail-card-focus">
             <p class="eyebrow">Current focus</p>
             <h2>Draft context</h2>

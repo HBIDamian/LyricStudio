@@ -216,7 +216,7 @@ h4 {
 
 .chrome-controls {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 0.65rem;
   flex-wrap: nowrap;
   justify-content: flex-end;
@@ -225,11 +225,14 @@ h4 {
 .theme-icon-button {
   display: inline-grid;
   place-items: center;
-  width: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: 3.15rem;
+  height: 3.15rem;
+  min-width: 3.15rem;
+  min-height: 3.15rem;
+  align-self: center;
+  justify-self: center;
   padding: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--border-strong);
   background: var(--surface-3);
   color: var(--muted-soft);
@@ -237,9 +240,13 @@ h4 {
 }
 
 .theme-icon {
-  font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
   line-height: 1;
-  transform: translateY(-0.03rem);
+  font-weight: 700;
+  transform: none;
 }
 
 .theme-icon-button[data-theme='dark'] {
@@ -298,6 +305,12 @@ select {
   padding: 0.55rem 0.9rem;
 }
 
+.ghost-button.theme-icon-button {
+  min-height: 3.15rem;
+  padding: 0;
+  border-radius: 16px;
+}
+
 .theme-button {
   min-width: 5rem;
   color: var(--muted);
@@ -313,12 +326,20 @@ select {
 
 .topbar-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.6rem;
   padding: 0.5rem;
   border-radius: 16px;
   border: 1px solid var(--border);
   background: var(--surface-2);
+  min-width: 0;
+}
+
+.topbar-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   min-width: 0;
 }
 
@@ -337,19 +358,21 @@ select {
 
 .panel-toggle-group {
   display: inline-flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.45rem;
-  margin-left: 0.15rem;
-  padding-left: 0.55rem;
-  border-left: 1px solid var(--border);
+  min-width: 0;
 }
 
 .chrome-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.2rem;
   padding: 0.45rem 0.78rem;
   font-size: 0.9rem;
   border-radius: 11px;
   box-shadow: none;
+  text-align: center;
 }
 
 .chrome-action-button[aria-pressed='true'] {
@@ -392,8 +415,16 @@ select {
   min-height: 0;
 }
 
+.workspace.is-rail-collapsed {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+}
+
 .workspace.is-panel-collapsed {
   grid-template-columns: 240px minmax(0, 1fr) 0;
+}
+
+.workspace.is-rail-collapsed.is-panel-collapsed {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .studio-rail {
@@ -407,6 +438,14 @@ select {
   gap: 0.75rem;
   padding: 0.9rem;
   background: var(--surface);
+}
+
+.studio-rail.is-collapsed {
+  display: none;
+}
+
+.workspace.is-rail-collapsed.is-panel-collapsed .tool-panel.is-collapsed {
+  display: none;
 }
 
 .rail-card {
@@ -1253,8 +1292,16 @@ input::placeholder {
     grid-template-columns: 220px minmax(0, 1fr) minmax(300px, 340px);
   }
 
+  .workspace.is-rail-collapsed {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+  }
+
   .workspace.is-panel-collapsed {
     grid-template-columns: 220px minmax(0, 1fr) 0;
+  }
+
+  .workspace.is-rail-collapsed.is-panel-collapsed {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .status-grid {
@@ -1264,7 +1311,9 @@ input::placeholder {
 
 @media (max-width: 1320px) {
   .workspace,
-  .workspace.is-panel-collapsed {
+  .workspace.is-panel-collapsed,
+  .workspace.is-rail-collapsed,
+  .workspace.is-rail-collapsed.is-panel-collapsed {
     grid-template-columns: 1fr;
   }
 
@@ -1298,7 +1347,7 @@ input::placeholder {
   }
 
   .chrome-controls {
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .studio-rail,
@@ -1386,9 +1435,7 @@ input::placeholder {
   }
 
   .chrome-controls {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.55rem;
+    display: flex;
     align-items: stretch;
   }
 
@@ -1399,17 +1446,37 @@ input::placeholder {
     padding: 0.48rem;
   }
 
+  .topbar-controls-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: center;
+  }
+
+  .theme-icon-button {
+    width: 3.3rem;
+    height: 3.3rem;
+    min-width: 3.3rem;
+    min-height: 3.3rem;
+  }
+
+  .ghost-button.theme-icon-button {
+    min-height: 3.3rem;
+    padding: 0;
+  }
+
+  .theme-icon {
+    font-size: 1.7rem;
+  }
+
   .status-badge {
     width: 100%;
     text-align: center;
   }
 
   .panel-toggle-group {
-    border-left: none;
-    padding-left: 0;
-    margin-left: 0;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.45rem;
   }
 

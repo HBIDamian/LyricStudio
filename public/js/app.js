@@ -21,8 +21,10 @@ const editorHost = document.querySelector('#editor-lines');
 const aiStatus = document.querySelector('#ai-status');
 const selectionChip = document.querySelector('#selection-chip');
 const lineChip = document.querySelector('#line-chip');
+const studioRail = document.querySelector('#studio-rail');
 const toolPanel = document.querySelector('#tool-panel');
 const statusPanel = document.querySelector('#status-panel');
+const studioRailToggle = document.querySelector('#studio-rail-toggle');
 const toolToggle = document.querySelector('#tool-panel-toggle');
 const statusToggle = document.querySelector('#status-panel-toggle');
 const workspace = document.querySelector('.workspace');
@@ -90,8 +92,10 @@ const IDEA_DEFAULT_RHYME_PATTERNS = {
 
 const chrome = setupChrome({
   workspace,
+  studioRail,
   toolPanel,
   statusPanel,
+  studioRailToggle,
   toolToggle,
   statusToggle,
   themeToggleButton,

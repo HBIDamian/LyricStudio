@@ -1,7 +1,7 @@
 const THEME_STORAGE_KEY = 'lyric-studio-theme-preference';
-const THEME_ICON_BY_THEME = {
-  light: '☀︎',
-  dark: '☾',
+const THEME_ICON_CLASS_BY_THEME = {
+  light: 'fa-sun',
+  dark: 'fa-moon',
 };
 
 function getSystemTheme() {
@@ -51,7 +51,8 @@ function applyThemePreference(preference, themeToggleButton = null) {
   themeToggleButton.setAttribute('title', `Switch to ${nextTheme} theme`);
 
   if (themeIcon) {
-    themeIcon.textContent = THEME_ICON_BY_THEME[resolvedTheme];
+    themeIcon.classList.remove(...Object.values(THEME_ICON_CLASS_BY_THEME));
+    themeIcon.classList.add(THEME_ICON_CLASS_BY_THEME[resolvedTheme]);
   }
 }
 
@@ -116,8 +117,10 @@ export function setBusy(button, busy, idleLabel = button.dataset.idleLabel || bu
 
 export function setupChrome({
   workspace,
+  studioRail,
   toolPanel,
   statusPanel,
+  studioRailToggle,
   toolToggle,
   statusToggle,
   themeToggleButton = null,
@@ -145,11 +148,22 @@ export function setupChrome({
     toolToggle.setAttribute('aria-pressed', String(!collapsed));
   };
 
+  const setStudioRailCollapsed = (collapsed) => {
+    studioRail.classList.toggle('is-collapsed', collapsed);
+    workspace.classList.toggle('is-rail-collapsed', collapsed);
+    studioRailToggle.textContent = collapsed ? 'Show rail' : 'Hide rail';
+    studioRailToggle.setAttribute('aria-pressed', String(!collapsed));
+  };
+
   const setStatusPanelCollapsed = (collapsed) => {
     statusPanel.classList.toggle('is-collapsed', collapsed);
     statusToggle.textContent = collapsed ? 'Show analysis' : 'Hide analysis';
     statusToggle.setAttribute('aria-pressed', String(!collapsed));
   };
+
+  studioRailToggle.addEventListener('click', () => {
+    setStudioRailCollapsed(!studioRail.classList.contains('is-collapsed'));
+  });
 
   toolToggle.addEventListener('click', () => {
     setToolPanelCollapsed(!toolPanel.classList.contains('is-collapsed'));
@@ -168,6 +182,7 @@ export function setupChrome({
   updateTheme(themePreference, { persist: false });
 
   const collapsePanelsByDefault = mobileLayoutQuery.matches;
+  setStudioRailCollapsed(studioRail.classList.contains('is-collapsed'));
   setToolPanelCollapsed(collapsePanelsByDefault || toolPanel.classList.contains('is-collapsed'));
   setStatusPanelCollapsed(collapsePanelsByDefault || statusPanel.classList.contains('is-collapsed'));
 
