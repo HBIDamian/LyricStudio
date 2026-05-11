@@ -59,7 +59,7 @@ const editorShortcuts = document.querySelector('#editor-shortcuts');
 const editorActionStatus = document.querySelector('#editor-action-status');
 
 const LOCAL_DRAFT_STORAGE_KEY = 'lyric-studio-local-draft-backup';
-const LOCAL_DRAFT_TTL_MS = 60 * 60 * 1000;
+const LOCAL_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 const IS_MAC = /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || '');
 const SHORTCUT_LABELS = {
   save: IS_MAC ? '⌘S' : 'Ctrl+S',
