@@ -150,9 +150,7 @@ export function createEditor({ container, onChange, onSelectionChange }) {
       doc: DEFAULT_EDITOR_TEXT,
       extensions: [
         history(),
-        lineNumbers({
-          formatNumber: (lineNumber) => `#${lineNumber}`,
-        }),
+        lineNumbers(),
         EditorView.domEventHandlers({
           mousedown(event, currentView) {
             if (event.button !== 0 || event.detail < 3) {
