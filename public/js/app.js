@@ -444,15 +444,19 @@ async function copyAllToClipboard() {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(draftText);
     } else {
-      const textarea = editor.getTextarea();
-      const previousStart = textarea.selectionStart;
-      const previousEnd = textarea.selectionEnd;
+      const textarea = document.createElement('textarea');
+      textarea.value = draftText;
+      textarea.setAttribute('readonly', 'readonly');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
+      document.body.append(textarea);
 
       textarea.focus();
       textarea.select();
 
       const copied = document.execCommand('copy');
-      textarea.setSelectionRange(previousStart, previousEnd);
+      textarea.remove();
 
       if (!copied) {
         throw new Error('Clipboard copy failed');

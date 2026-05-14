@@ -1,245 +1,243 @@
+import { EditorState } from 'https://esm.sh/@codemirror/state@6.5.2?target=es2022'
+import {
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+  placeholder,
+} from 'https://esm.sh/@codemirror/view@6.38.6?target=es2022&deps=@codemirror/state@6.5.2'
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from 'https://esm.sh/@codemirror/commands@6.8.1?target=es2022&deps=@codemirror/state@6.5.2,@codemirror/view@6.38.6'
+
 export const DEFAULT_EDITOR_TEXT = [
   'When the room gets quiet enough,',
   'the page starts breathing back.',
   '',
   '',
-].join('\n');
+].join('\n')
 
-function getLineStartIndex(text, lineNumber) {
-  const lines = text.split('\n');
-  let start = 0;
-
-  for (let index = 1; index < lineNumber; index += 1) {
-    start += (lines[index - 1] || '').length + 1;
-  }
-
-  return start;
-}
+const EDITOR_PLACEHOLDER = 'Write a line…\nThen another one.\nLeave blank lines for stanzas.'
 
 function shouldAutofocusEditor() {
-  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches
+}
+
+function normalizeEditorText(value = '') {
+  return String(value).replace(/\r\n?/g, '\n')
+}
+
+function createLineEntry(lineNumber, text) {
+  return {
+    id: `line-${lineNumber}`,
+    number: lineNumber,
+    text,
+  }
+}
+
+function parseDisplayedLineNumber(value = '') {
+  const parsedLineNumber = Number.parseInt(String(value).replace(/[^\d]+/g, ''), 10)
+  return Number.isFinite(parsedLineNumber) ? parsedLineNumber : null
+}
+
+function getLineFromPointerEvent(view, event, fallbackPos = null) {
+  const targetNode = event.target instanceof Node ? event.target : null
+  const targetElement = targetNode instanceof Element ? targetNode : targetNode?.parentElement ?? null
+  const lineElement = targetElement?.closest('.cm-line')
+
+  if (lineElement && view.contentDOM.contains(lineElement)) {
+    return view.state.doc.lineAt(view.posAtDOM(lineElement, 0))
+  }
+
+  const position = view.posAtCoords({
+    x: event.clientX,
+    y: event.clientY,
+  }) ?? fallbackPos
+
+  return typeof position === 'number' ? view.state.doc.lineAt(position) : null
+}
+
+function focusEditorViewLine(targetView, lineNumber, selectWholeLine = true, updateHash = true) {
+  let line
+
+  try {
+    line = targetView.state.doc.line(lineNumber)
+  } catch {
+    return false
+  }
+
+  targetView.focus()
+  targetView.dispatch({
+    selection: {
+      anchor: selectWholeLine ? line.from : line.to,
+      head: line.to,
+    },
+    scrollIntoView: true,
+  })
+
+  if (updateHash) {
+    window.history.replaceState(null, '', `#line-${lineNumber}`)
+  }
+
+  return true
 }
 
 export function createEditor({ container, onChange, onSelectionChange }) {
-  container.innerHTML = `
-    <div class="editor-grid">
-      <div class="line-gutter"></div>
-      <textarea class="editor-input" spellcheck="true" placeholder="Write a line…\nThen another one.\nLeave blank lines for stanzas."></textarea>
-      <div class="editor-line-measure" aria-hidden="true"></div>
-    </div>
-  `;
+  container.innerHTML = '<div class="editor-grid"><div class="editor-host"></div></div>'
 
-  const gutter = container.querySelector('.line-gutter');
-  const textarea = container.querySelector('.editor-input');
-  const lineMeasure = container.querySelector('.editor-line-measure');
-  const flaggedLines = new Map();
-  let measuredLineHeights = [];
+  const editorHost = container.querySelector('.editor-host')
+  let view
 
-  textarea.value = DEFAULT_EDITOR_TEXT;
+  function getEditorText() {
+    return view.state.doc.toString()
+  }
 
   function getLines() {
-    return textarea.value.split('\n').map((text, index) => ({
-      id: `line-${index + 1}`,
-      number: index + 1,
-      text,
-    }));
-  }
-
-  function getEditorLineHeight() {
-    const lineHeight = Number.parseFloat(window.getComputedStyle(textarea).lineHeight);
-    return Number.isFinite(lineHeight) ? lineHeight : 32;
-  }
-
-  function measureVisualLineHeights(lines) {
-    if (!lines.length) {
-      return [];
-    }
-
-    const textareaStyles = window.getComputedStyle(textarea);
-    const lineHeight = getEditorLineHeight();
-    const paddingLeft = Number.parseFloat(textareaStyles.paddingLeft) || 0;
-    const paddingRight = Number.parseFloat(textareaStyles.paddingRight) || 0;
-    const contentWidth = Math.max(0, textarea.clientWidth - paddingLeft - paddingRight);
-
-    if (!contentWidth) {
-      return lines.map(() => lineHeight);
-    }
-
-    lineMeasure.style.width = `${contentWidth}px`;
-    lineMeasure.style.font = textareaStyles.font;
-    lineMeasure.style.fontKerning = textareaStyles.fontKerning;
-    lineMeasure.style.fontFeatureSettings = textareaStyles.fontFeatureSettings;
-    lineMeasure.style.fontVariationSettings = textareaStyles.fontVariationSettings;
-    lineMeasure.style.fontStretch = textareaStyles.fontStretch;
-    lineMeasure.style.letterSpacing = textareaStyles.letterSpacing;
-    lineMeasure.style.wordSpacing = textareaStyles.wordSpacing;
-    lineMeasure.style.lineHeight = textareaStyles.lineHeight;
-    lineMeasure.style.textTransform = textareaStyles.textTransform;
-    lineMeasure.style.textIndent = textareaStyles.textIndent;
-    lineMeasure.style.tabSize = textareaStyles.tabSize;
-    lineMeasure.style.whiteSpace = 'pre-wrap';
-    lineMeasure.style.wordBreak = textareaStyles.wordBreak;
-    lineMeasure.style.overflowWrap = textareaStyles.overflowWrap;
-
-    const fragment = document.createDocumentFragment();
-
-    lines.forEach((line) => {
-      const row = document.createElement('div');
-      row.className = 'editor-line-measure-row';
-      row.textContent = line.text || ' ';
-      fragment.append(row);
-    });
-
-    lineMeasure.replaceChildren(fragment);
-
-    return [...lineMeasure.children].map((row) => {
-      const height = Math.ceil(row.getBoundingClientRect().height);
-      return Math.max(height, lineHeight);
-    });
+    return getEditorText().split('\n').map((text, index) => createLineEntry(index + 1, text))
   }
 
   function getActiveLineNumber() {
-    const selectionStart = textarea.selectionStart || 0;
-    return textarea.value.slice(0, selectionStart).split('\n').length;
+    return view.state.doc.lineAt(view.state.selection.main.head).number
   }
 
   function getActiveLine() {
-    return getLines().find((line) => line.number === getActiveLineNumber()) || null;
+    const activeLine = view.state.doc.lineAt(view.state.selection.main.head)
+    return createLineEntry(activeLine.number, activeLine.text)
   }
 
   function getSelectedText() {
-    const selection = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd).trim();
-    return selection;
+    const { from, to } = view.state.selection.main
+    return view.state.sliceDoc(from, to).trim()
   }
 
-  function getLineRange(lineNumber) {
-    const lines = getLines();
-    const line = lines.find((entry) => entry.number === lineNumber);
-
-    if (!line) {
-      return { start: 0, end: 0 };
-    }
-
-    const start = getLineStartIndex(textarea.value, lineNumber);
-    const end = start + line.text.length;
-    return { start, end };
-  }
-
-  function focusLine(lineNumber, selectWholeLine = true) {
-    const { start, end } = getLineRange(lineNumber);
-    textarea.focus();
-    textarea.setSelectionRange(selectWholeLine ? start : end, end);
-    window.location.hash = `line-${lineNumber}`;
-    renderGutter({ recalculateHeights: false });
-    emitSelectionChange();
-  }
-
-  function renderGutter({ lines = getLines(), recalculateHeights = false } = {}) {
-    const activeLine = getActiveLineNumber();
-
-    if (recalculateHeights || measuredLineHeights.length !== lines.length) {
-      measuredLineHeights = measureVisualLineHeights(lines);
-    }
-
-    gutter.innerHTML = lines.map((line) => {
-      const lineHeight = measuredLineHeights[line.number - 1] || getEditorLineHeight();
-      const isFlagged = flaggedLines.has(line.number);
-      const title = isFlagged ? ` title="Cliché note: ${flaggedLines.get(line.number)}"` : '';
-      return `
-        <button
-          type="button"
-          class="gutter-line${line.number === activeLine ? ' is-active' : ''}${isFlagged ? ' has-cliche' : ''}"
-          data-line-number="${line.number}"
-          style="--gutter-line-height: ${lineHeight}px"
-          aria-label="Focus line ${line.number}"
-          ${title}
-        >#${line.number}</button>
-      `;
-    }).join('');
-  }
-
-  function emitChange() {
-    const lines = getLines();
-    renderGutter({ lines, recalculateHeights: true });
-    onChange?.({
-      lines,
-      activeLine: getActiveLine(),
-      selectedText: getSelectedText(),
-    });
-  }
-
-  function emitSelectionChange() {
-    renderGutter({ recalculateHeights: false });
-    onSelectionChange?.({
+  function buildSnapshot() {
+    return {
       lines: getLines(),
       activeLine: getActiveLine(),
       selectedText: getSelectedText(),
-    });
+    }
   }
 
-  gutter.addEventListener('click', (event) => {
-    const button = event.target.closest('.gutter-line');
-
-    if (!button) {
-      return;
-    }
-
-    focusLine(Number(button.dataset.lineNumber));
-  });
-
-  textarea.addEventListener('scroll', () => {
-    gutter.scrollTop = textarea.scrollTop;
-  });
-
-  textarea.addEventListener('input', () => {
-    emitChange();
-  });
-
-  textarea.addEventListener('click', () => {
-    emitSelectionChange();
-  });
-
-  textarea.addEventListener('keyup', () => {
-    emitSelectionChange();
-  });
-
-  textarea.addEventListener('select', () => {
-    emitSelectionChange();
-  });
-
-  textarea.addEventListener('focus', () => {
-    emitSelectionChange();
-  });
-
-  if ('ResizeObserver' in window) {
-    const resizeObserver = new ResizeObserver(() => {
-      renderGutter({ recalculateHeights: true });
-    });
-
-    resizeObserver.observe(textarea);
-  } else {
-    window.addEventListener('resize', () => {
-      renderGutter({ recalculateHeights: true });
-    });
+  function emitChange() {
+    onChange?.(buildSnapshot())
   }
 
-  window.addEventListener('hashchange', () => {
-    const hashMatch = window.location.hash.match(/^#line-(\d+)$/);
+  function emitSelectionChange() {
+    onSelectionChange?.(buildSnapshot())
+  }
 
-    if (hashMatch) {
-      focusLine(Number(hashMatch[1]));
+  function focusLine(lineNumber, selectWholeLine = true, updateHash = true) {
+    focusEditorViewLine(view, lineNumber, selectWholeLine, updateHash)
+  }
+
+  function syncLineHash() {
+    const hashMatch = window.location.hash.match(/^#line-(\d+)$/)
+
+    if (!hashMatch) {
+      return false
     }
-  });
 
-  renderGutter({ recalculateHeights: true });
+    focusLine(Number(hashMatch[1]), true, false)
+    return true
+  }
+
+  view = new EditorView({
+    state: EditorState.create({
+      doc: DEFAULT_EDITOR_TEXT,
+      extensions: [
+        history(),
+        lineNumbers({
+          formatNumber: (lineNumber) => `#${lineNumber}`,
+        }),
+        EditorView.domEventHandlers({
+          mousedown(event, currentView) {
+            if (event.button !== 0 || event.detail < 3) {
+              return false
+            }
+
+            const targetNode = event.target instanceof Node ? event.target : null
+
+            if (!targetNode || !currentView.contentDOM.contains(targetNode)) {
+              return false
+            }
+
+            const line = getLineFromPointerEvent(currentView, event)
+
+            if (!line) {
+              return false
+            }
+
+            event.preventDefault()
+            return focusEditorViewLine(currentView, line.number)
+          },
+        }),
+        EditorView.lineWrapping,
+        highlightActiveLine(),
+        highlightActiveLineGutter(),
+        EditorState.tabSize.of(2),
+        placeholder(EDITOR_PLACEHOLDER),
+        EditorView.contentAttributes.of({
+          spellcheck: 'true',
+          'aria-label': 'Lyric draft editor',
+        }),
+        keymap.of([
+          ...defaultKeymap,
+          ...historyKeymap,
+          indentWithTab,
+        ]),
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            emitChange()
+          }
+
+          if (update.docChanged || update.selectionSet || update.focusChanged) {
+            emitSelectionChange()
+          }
+        }),
+      ],
+    }),
+    parent: editorHost,
+  })
+
+  const handleGutterPointerDown = (event) => {
+    const target = event.target instanceof Element ? event.target : null
+    const gutterElement = target?.closest('.cm-lineNumbers .cm-gutterElement')
+
+    if (!gutterElement) {
+      return
+    }
+
+    const lineNumber = parseDisplayedLineNumber(gutterElement.textContent)
+
+    if (!lineNumber) {
+      return
+    }
+
+    event.preventDefault()
+    focusLine(lineNumber)
+  }
+
+  const handleHashChange = () => {
+    syncLineHash()
+  }
+
+  view.dom.addEventListener('mousedown', handleGutterPointerDown)
+  window.addEventListener('hashchange', handleHashChange)
+
   queueMicrotask(() => {
-    if (shouldAutofocusEditor()) {
-      textarea.focus();
+    const focusedHashLine = syncLineHash()
+
+    if (!focusedHashLine && shouldAutofocusEditor()) {
+      view.focus()
     }
 
-    emitChange();
-    emitSelectionChange();
-  });
+    emitChange()
+    emitSelectionChange()
+  })
 
   return {
     getLines,
@@ -247,37 +245,48 @@ export function createEditor({ container, onChange, onSelectionChange }) {
     getActiveLine,
     getActiveLineNumber,
     getTextarea() {
-      return textarea;
+      return null
     },
-    getEditorText() {
-      return textarea.value;
-    },
+    getEditorText,
     setEditorText(nextText = '') {
-      textarea.value = String(nextText).replace(/\r\n?/g, '\n');
-      textarea.focus();
-      textarea.setSelectionRange(0, 0);
-      emitChange();
-      emitSelectionChange();
+      view.dispatch({
+        changes: {
+          from: 0,
+          to: view.state.doc.length,
+          insert: normalizeEditorText(nextText),
+        },
+        selection: {
+          anchor: 0,
+          head: 0,
+        },
+        scrollIntoView: true,
+      })
+      view.focus()
     },
-    setFlaggedLines(lineEntries) {
-      flaggedLines.clear();
-
-      lineEntries.forEach((entry) => {
-        flaggedLines.set(entry.lineNumber, entry.matches.map((match) => match.phrase).join(', '));
-      });
-
-      renderGutter({ recalculateHeights: false });
+    setFlaggedLines(_lineEntries) {
+      // Styling hooks for flagged lines can be added in a later CodeMirror pass.
     },
     focusLine,
     insertBelowActive(text) {
-      const activeLine = getActiveLineNumber();
-      const { end } = getLineRange(activeLine);
-      const before = textarea.value.slice(0, end);
-      const after = textarea.value.slice(end);
-      const spacer = after.startsWith('\n') || !after.length ? '\n' : '\n';
-      textarea.value = `${before}${spacer}${text}${after}`;
-      emitChange();
-      focusLine(activeLine + 1, false);
+      const activeLine = view.state.doc.lineAt(view.state.selection.main.head)
+      const normalizedText = normalizeEditorText(text)
+      const isLastLine = activeLine.number === view.state.doc.lines
+      const insertionPoint = isLastLine ? activeLine.to : activeLine.to + 1
+      const insertionText = isLastLine ? `\n${normalizedText}` : `${normalizedText}\n`
+
+      view.dispatch({
+        changes: {
+          from: insertionPoint,
+          insert: insertionText,
+        },
+      })
+
+      focusLine(activeLine.number + 1, false)
     },
-  };
+    destroy() {
+      view.dom.removeEventListener('mousedown', handleGutterPointerDown)
+      window.removeEventListener('hashchange', handleHashChange)
+      view.destroy()
+    },
+  }
 }
